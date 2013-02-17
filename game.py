@@ -72,8 +72,7 @@ class Tile(object):
         self.type = WIRE
         self.connections = 0
         self._is_connected = False
-        self._is_locked = False
-        self._all_correct = False
+        self.set_is_locked(False)
 
     def set_type(self):
         # this needs to be called AFTER tree is grown (Grid.build_tree())!
@@ -160,8 +159,9 @@ class Tile(object):
 
     def set_is_locked(self, value):
         self._is_locked = value
-        diffuse = '0xE3FFFFFF' if self._is_locked else '0xFFFFFFFF'
-        self.image_control.setColorDiffuse(diffuse)
+        if self.image_control:
+            diffuse = '0xE3FFFFFF' if self._is_locked else '0xFFFFFFFF'
+            self.image_control.setColorDiffuse(diffuse)
 
     is_locked = property(get_is_locked, set_is_locked)
 
@@ -217,6 +217,8 @@ class Grid(object):
         self._height = height
         self._tiles = []
         self._root_tile = None
+        self._all_correct = False
+
 
     def generate_tiles(self):
         tile_width = self._width / self._columns
