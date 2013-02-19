@@ -1,3 +1,22 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#
+#     Copyright (C) 2013 Tristan Fischer (sphere@dersphere.de)
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+
 import os
 import random
 import time
@@ -13,16 +32,17 @@ addon = xbmcaddon.Addon()
 
 ADDON_NAME = addon.getAddonInfo('name')
 ADDON_PATH = addon.getAddonInfo('path').decode('utf-8')
-MEDIA_PATH = xbmc.translatePath(os.path.join(
-    ADDON_PATH,
+MEDIA_PATH = os.path.join(
+    xbmc.translatePath(ADDON_PATH),
     'resources',
     'skins',
     'default',
     'media'
-))
+)
 
-TILE_WIDTH = 80
-TILE_HEIGHT = 80
+
+COLUMNS = 9
+ROWS = 9
 
 # bits to detect the connection directions, UP=1, UP+LEFT=9, ...
 UP = 1
@@ -160,7 +180,7 @@ class Tile(object):
     def set_is_locked(self, value):
         self._is_locked = value
         if self.image_control:
-            diffuse = '0xE3FFFFFF' if self._is_locked else '0xFFFFFFFF'
+            diffuse = 'EE55EE55' if self._is_locked else 'FFFFFFFF'
             self.image_control.setColorDiffuse(diffuse)
 
     is_locked = property(get_is_locked, set_is_locked)
@@ -202,6 +222,11 @@ class Tile(object):
                 return True
         return False
 
+    @property
+    def num_connections(self):
+        num = len([d for d in DIRECTIONS if d & self.connections])
+        return num
+
     def __str__(self):
         return '(%d, %d)' % (self._row, self._column)
 
@@ -218,7 +243,6 @@ class Grid(object):
         self._tiles = []
         self._root_tile = None
         self._all_correct = False
-
 
     def generate_tiles(self):
         tile_width = self._width / self._columns
@@ -254,8 +278,10 @@ class Grid(object):
                     # add selected_neighbor to active_tiles
                     active_tiles.append(selected_neighbor)
                     # filter out chells which can't have new connections
+                    # or  have already 3 connections
                     active_tiles = [
                         t for t in active_tiles if t.has_free_neighbor
+                        and t.num_connections < 3
                     ]
                     break
         for tile in self._tiles:
@@ -330,7 +356,7 @@ class Grid(object):
         return self._tiles[idx]
 
 
-class GameWindow(xbmcgui.WindowXML):
+class Game(xbmcgui.WindowXML):
     CONTROL_ID_GRID = 3001
     CONTROL_ID_RESTART = 3002
     CONTROL_ID_MOVES_COUNT = 3003
@@ -346,9 +372,6 @@ class GameWindow(xbmcgui.WindowXML):
     AID_MIDDLE_MOUSE = [102]  # lock the selected tile
     AID_LOCK = AID_INFO + AID_SPACE + AID_MIDDLE_MOUSE
 
-    COLUMNS = 9
-    ROWS = 9
-
     def onInit(self):
         # init vars
         self._tile_button_ids = {}
@@ -360,6 +383,7 @@ class GameWindow(xbmcgui.WindowXML):
         self.moves_control = self.getControl(self.CONTROL_ID_MOVES_COUNT)
         self.time_control = self.getControl(self.CONTROL_ID_TIME)
         self.game_id_control = self.getControl(self.CONTROL_ID_GAME_ID)
+        self.new_game_control = self.getControl(self.CONTROL_ID_RESTART)
         # init the grid
         self.grid = self.get_grid()
         self.grid.generate_tiles()
@@ -373,18 +397,16 @@ class GameWindow(xbmcgui.WindowXML):
         action_id = action.getId()
         focus_id = self.getFocusId()
         if self._game_in_progress and focus_id in self._tile_button_ids:
+            tile = self._tile_button_ids[self.getFocusId()]
             if action_id in self.AID_ENTER:
-                tile = self._tile_button_ids[self.getFocusId()]
-                changed = tile.rotate_ccw()
-                if changed:
+                if not tile.is_locked:
+                    tile.rotate_ccw()
                     self.movement_done()
             elif action_id in self.AID_BACK:
-                tile = self._tile_button_ids[self.getFocusId()]
-                changed = tile.rotate_cw()
-                if changed:
+                if not tile.is_locked:
+                    tile.rotate_cw()
                     self.movement_done()
             elif action_id in self.AID_LOCK:
-                tile = self._tile_button_ids[self.getFocusId()]
                 tile.is_locked = not tile.is_locked
             if self.grid.all_correct:
                 self.game_over()
@@ -405,7 +427,7 @@ class GameWindow(xbmcgui.WindowXML):
         x, y = self.grid_control.getPosition()
         width = self.grid_control.getWidth()
         height = self.grid_control.getHeight()
-        return Grid(self.ROWS, self.COLUMNS, x, y, width, height)
+        return Grid(ROWS, COLUMNS, x, y, width, height)
 
     def start_game(self, game_id=None):
         if not game_id:
@@ -445,6 +467,11 @@ class GameWindow(xbmcgui.WindowXML):
         for tile in self.grid.tiles:
             self._tile_button_ids[tile.button_id] = tile
             tile.set_button_navigation()
+        # set onleft on the new game button to the upper right tile
+        upper_right_tile = self.grid.at(ROWS - 1, 0)
+        self.new_game_control.controlLeft(upper_right_tile.button_control)
+        # set onRight on the upper right tile to the new game button
+        upper_right_tile.button_control.controlRight(self.new_game_control)
 
     def clear_tile_controls(self):
         self.removeControls([t.button_control for t in self.grid.tiles])
@@ -476,13 +503,13 @@ class GameWindow(xbmcgui.WindowXML):
                  level=xbmc.LOGNOTICE)
 
 if __name__ == '__main__':
-    game_window = GameWindow(
+    game = Game(
         'script-%s-main.xml' % ADDON_NAME,
         ADDON_PATH,
         'default',
         '720p'
     )
-    game_window.doModal()
-    del game_window
+    game.doModal()
+    del game
 
 sys.modules.clear()
