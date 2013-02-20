@@ -18,6 +18,28 @@
             <height>15</height>
             <texture>netwalk_seperator.png</texture>
         </control>
+        <control type="textbox">
+            <description>Game Controls Help</description>
+            <posx>780</posx>
+            <posy>320</posy>
+            <width>480</width>
+            <height>150</height>
+            <visible>true</visible>
+            <font>font12</font>
+            <textcolor>FFFFFFFF</textcolor>
+            <label>$LOCALIZE[SCRIPT3010]</label>
+        </control>
+        <control type="textbox">
+            <description>Game Goal Help</description>
+            <posx>780</posx>
+            <posy>470</posy>
+            <width>480</width>
+            <height>150</height>
+            <visible>true</visible>
+            <font>font12</font>
+            <textcolor>FFFFFFFF</textcolor>
+            <label>$LOCALIZE[SCRIPT3011]</label>
+        </control>
         <control type="label" id="3001">
             <description>The Grid placeholder. This label should not be shown but its space will be filled with the tiles.</description>
             <posx>80</posx>
