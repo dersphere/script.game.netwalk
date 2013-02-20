@@ -7,6 +7,6 @@
     <extension point="xbmc.addon.metadata">
         <platform>all</platform>
         <summary lang="en">The Game Netwalk</summary>
-        <description lang="en">The Game Netwalk</description>
+        <description lang="en">Netwalk is a puzzle-like game where you have to rotate tiles.[CR]Your goal is to connect all terminals to the server.[CR][CR]See in-game help for more informations.</description>
     </extension>
 </addon>
