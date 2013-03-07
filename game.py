@@ -40,6 +40,13 @@ MEDIA_PATH = os.path.join(
     'media'
 )
 
+STRINGS = {
+    'you_won_head': 3007,
+    'you_won_text': 3008,
+    'exit_head': 3009,
+    'exit_text': 3012
+}
+
 
 COLUMNS = 9
 ROWS = 9
@@ -72,6 +79,19 @@ def opposite(direction):
 
 def get_image(filename):
     return os.path.join(MEDIA_PATH, filename)
+
+
+def _(string_id):
+    if string_id in STRINGS:
+        return addon.getLocalizedString(STRINGS[string_id])
+    else:
+        xbmc.log('String is missing: %s' % string_id, level=xbmc.LOGDEBUG)
+        return string_id
+
+
+def log(msg):
+    xbmc.log('[ADDON][%s] %s' % (ADDON_NAME, msg.encode('utf-8')),
+             level=xbmc.LOGNOTICE)
 
 
 class Tile(object):
@@ -286,7 +306,7 @@ class Grid(object):
                     break
         for tile in self._tiles:
             tile.set_type()
-        print 'Done, there is no tile with a free neighbor'
+        log('Done, there is no tile with a free neighbor')
 
     def randomize_tree(self):
         self._target_moves = 0
@@ -331,7 +351,7 @@ class Grid(object):
             # update the images because some have changed their status
             tile.update_image()
         self._all_correct = len(visited_tiles) == len(self._tiles)
-        print 'Done with update_connection_states walk'
+        log('Done with update_connection_states walk')
 
     @property
     def tiles(self):
@@ -483,11 +503,11 @@ class Game(xbmcgui.WindowXML):
     def game_over(self):
         self._game_in_progress = False
         dialog = xbmcgui.Dialog()
-        dialog.ok('You won!', 'You won the game.')
+        dialog.ok(_('you_won_head'), _('you_won_text'))
 
     def exit(self):
         dialog = xbmcgui.Dialog()
-        confirmed = dialog.yesno('Exit?', 'Are you sure?')
+        confirmed = dialog.yesno(_('exit_head'), _('exit_text'))
         if confirmed:
             self.clear_tile_controls()
             self.grid = None
@@ -498,9 +518,6 @@ class Game(xbmcgui.WindowXML):
         self._moves += 1
         self.moves_control.setLabel(str(self._moves))
 
-    def log(self, msg):
-        xbmc.log('[ADDON][%s] %s' % ('TEST', msg.encode('utf-8')),
-                 level=xbmc.LOGNOTICE)
 
 if __name__ == '__main__':
     game = Game(
